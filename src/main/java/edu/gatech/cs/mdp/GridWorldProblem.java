@@ -24,6 +24,7 @@ import burlap.behavior.singleagent.planning.deterministic.informed.Heuristic;
 import burlap.behavior.singleagent.planning.deterministic.informed.astar.AStar;
 import burlap.behavior.singleagent.planning.deterministic.uninformed.bfs.BFS;
 import burlap.behavior.singleagent.planning.deterministic.uninformed.dfs.DFS;
+import burlap.behavior.singleagent.planning.stochastic.policyiteration.PolicyIteration;
 import burlap.behavior.singleagent.planning.stochastic.valueiteration.ValueIteration;
 import burlap.behavior.valuefunction.QProvider;
 import burlap.behavior.valuefunction.ValueFunction;
@@ -180,6 +181,19 @@ public class GridWorldProblem {
 	}
 
 
+	public void policyIterationExample(String outputPath){
+		
+		Planner planner = new PolicyIteration(domain, 0.99, hashingFactory, 0.001, 100, 100);
+		Policy p = planner.planFromState(initialState);
+	
+		PolicyUtils.rollout(p, initialState, domain.getModel()).write(outputPath + "pi");
+
+		simpleValueFunctionVis((ValueFunction)planner, p);
+		
+	}
+
+
+
 	public void QLearningExample(String outputPath){
 		
 		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0., 1.);
@@ -267,7 +281,8 @@ public class GridWorldProblem {
 		//run example
 		//example.BFSExample(outputPath);
 		//example.QLearningExample(outputPath);
-		example.valueIterationExample(outputPath);
+		//example.valueIterationExample(outputPath);
+		example.policyIterationExample(outputPath);
 		//example.experimenterAndPlotter();
 		
 		//run the visualizer
