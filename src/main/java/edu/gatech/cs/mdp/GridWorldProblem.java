@@ -97,11 +97,11 @@ public class GridWorldProblem {
 
 		// handle rewards
 		GridWorldRewardFunction rf = new GridWorldRewardFunction(this.width,
-																 this.height, -1);
+																 this.height, -0.1);
 
-		rf.setReward(goal[0], goal[1], 20);
+		rf.setReward(goal[0], goal[1], 50);
 		for (int[] hazard : maze.getHazards()) {
-			rf.setReward(hazard[0], hazard[1], -10);
+			rf.setReward(hazard[0], hazard[1], -50);
 		}
 		gwdg.setRf(rf);
 
@@ -311,6 +311,37 @@ public class GridWorldProblem {
 	
 	}
 
+	public void qLearningGammaExperimenter(){
+
+		List<LearningAgentFactory> factories = new ArrayList<LearningAgentFactory>();
+		for (int i : new int[] {90, 95, 99}) {
+			double gamma = (double) i / 100;
+			LearningAgentFactory qLearningFactory = new LearningAgentFactory() {
+
+				public String getAgentName() {
+					return "Q-Learning Gamma: " + gamma;
+				}
+
+
+				public LearningAgent generateAgent() {
+					return new QLearning(domain, gamma, hashingFactory, 0.3, 0.9);
+				}
+			};
+			factories.add(qLearningFactory);
+		}
+		LearningAlgorithmExperimenter exp = new LearningAlgorithmExperimenter(
+			env, 20, 20, factories.toArray(new LearningAgentFactory[0]));
+		exp.setUpPlottingConfiguration(500, 250, 2, 1000,
+				TrialMode.MOST_RECENT_AND_AVERAGE,
+				PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
+				PerformanceMetric.AVERAGE_EPISODE_REWARD,
+				PerformanceMetric.STEPS_PER_EPISODE);
+
+		exp.startExperiment();
+		exp.writeStepAndEpisodeDataToCSV("qLearningGammaExpData");
+	
+	}
+
 	public static void main(String[] args) {
 	
 		GridWorldProblem example = new GridWorldProblem();
@@ -318,11 +349,12 @@ public class GridWorldProblem {
 		
 		//run example
 		//example.BFSExample(outputPath);
-		// example.QLearningExample(outputPath);
+		//example.QLearningExample(outputPath);
 		// example.valueIterationExample(outputPath);
 		// example.policyIterationExample(outputPath);
 		//example.experimenterAndPlotter();
-		example.qLearningRateExperimenter();
+		//example.qLearningRateExperimenter();
+		example.qLearningGammaExperimenter();
 		
 		//run the visualizer
 		// example.visualize(outputPath);
