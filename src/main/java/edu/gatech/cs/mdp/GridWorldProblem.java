@@ -52,6 +52,7 @@ import burlap.visualizer.Visualizer;
 
 import java.awt.*;
 import java.util.List;
+import java.util.ArrayList;
 
 import edu.gatech.cs.mdp.Maze;
 
@@ -75,7 +76,7 @@ public class GridWorldProblem {
 	public GridWorldProblem(){
 		
 		// read a csv representing the grid world
-		Maze maze  = new Maze("maze.csv");
+		Maze maze  = new Maze("maze2.csv");
 		gwdg = new GridWorldDomain(maze.getHeight(), maze.getWidth());
 		gwdg.setMap(maze.getMap());
 		gwdg.setProbSucceedTransitionDynamics(0.8);
@@ -100,7 +101,7 @@ public class GridWorldProblem {
 
 		rf.setReward(goal[0], goal[1], 20);
 		for (int[] hazard : maze.getHazards()) {
-			rf.setReward(hazard[0], hazard[1], -2);
+			rf.setReward(hazard[0], hazard[1], -10);
 		}
 		gwdg.setRf(rf);
 
@@ -196,10 +197,10 @@ public class GridWorldProblem {
 
 	public void QLearningExample(String outputPath){
 		
-		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0., 1.);
+		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0., 0.5);
 	
 		//run learning for 50 episodes
-		for(int i = 0; i < 50; i++){
+		for(int i = 0; i < 100; i++){
 			Episode e = agent.runLearningEpisode(env);
 	
 			e.write(outputPath + "ql_" + i);
@@ -273,20 +274,58 @@ public class GridWorldProblem {
 	
 	}
 
+
+	public void qLearningRateExperimenter(){
+		
+		//different reward function for more structured performance plots
+		// ((FactoredModel)domain.getModel()).setRf(new GoalBasedRF(this.goalCondition, 5.0, -0.1));
+		
+		/**
+		 * Create factories for Q-learning agent and SARSA agent to compare
+		 */
+		List<LearningAgentFactory> factories = new ArrayList<LearningAgentFactory>();
+		for (int i : new int[] {1, 5, 10}) {
+			double learningRate = (double) i / 10;
+			LearningAgentFactory qLearningFactory = new LearningAgentFactory() {
+
+				public String getAgentName() {
+					return "Q-Learning LR: " + learningRate;
+				}
+
+
+				public LearningAgent generateAgent() {
+					return new QLearning(domain, 0.99, hashingFactory, 0.3, learningRate);
+				}
+			};
+			factories.add(qLearningFactory);
+		}
+		LearningAlgorithmExperimenter exp = new LearningAlgorithmExperimenter(
+			env, 10, 100, factories.toArray(new LearningAgentFactory[0]));
+		exp.setUpPlottingConfiguration(500, 250, 2, 1000,
+				TrialMode.MOST_RECENT_AND_AVERAGE,
+				PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
+				PerformanceMetric.AVERAGE_EPISODE_REWARD);
+
+		exp.startExperiment();
+		exp.writeStepAndEpisodeDataToCSV("qLearningRateExpData");
+	
+	}
+
 	public static void main(String[] args) {
 	
 		GridWorldProblem example = new GridWorldProblem();
-		String outputPath = "output_maze1/"; //directory to record results
+		String outputPath = "output_maze2/"; //directory to record results
 		
 		//run example
 		//example.BFSExample(outputPath);
-		//example.QLearningExample(outputPath);
-		//example.valueIterationExample(outputPath);
-		example.policyIterationExample(outputPath);
+		// example.QLearningExample(outputPath);
+		// example.valueIterationExample(outputPath);
+		// example.policyIterationExample(outputPath);
 		//example.experimenterAndPlotter();
+		example.qLearningRateExperimenter();
 		
 		//run the visualizer
-		example.visualize(outputPath);
+		// example.visualize(outputPath);
 	
 	}
 }
