@@ -1,0 +1,11 @@
+**/*.episode
+output*/**
+**/*.DS_Store
+**/*.ods
+**/*.csv
+**/*.ipynb
+**/*prefs
+target/
+**/*lock*
+*.classpath
+*.project
