@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import edu.gatech.cs.mdp.Maze;
+import edu.gatech.cs.mdp.PlanningUtils;
 
 
 public class GridWorldProblem {
@@ -73,10 +74,10 @@ public class GridWorldProblem {
 	int height;
 	
 
-	public GridWorldProblem(){
+	public GridWorldProblem(String MazeFile){
 		
 		// read a csv representing the grid world
-		Maze maze  = new Maze("maze2.csv");
+		Maze maze  = new Maze(MazeFile);
 		gwdg = new GridWorldDomain(maze.getHeight(), maze.getWidth());
 		gwdg.setMap(maze.getMap());
 		gwdg.setProbSucceedTransitionDynamics(0.8);
@@ -97,11 +98,11 @@ public class GridWorldProblem {
 
 		// handle rewards
 		GridWorldRewardFunction rf = new GridWorldRewardFunction(this.width,
-																 this.height, -0.1);
+																 this.height, -1);
 
 		rf.setReward(goal[0], goal[1], 50);
 		for (int[] hazard : maze.getHazards()) {
-			rf.setReward(hazard[0], hazard[1], -50);
+			rf.setReward(hazard[0], hazard[1], -10);
 		}
 		gwdg.setRf(rf);
 
@@ -172,7 +173,7 @@ public class GridWorldProblem {
 
 	public void valueIterationExample(String outputPath){
 		
-		Planner planner = new ValueIteration(domain, 0.99, hashingFactory, 0.001, 100);
+		Planner planner = new ValueIteration(domain, 0.99, hashingFactory, 0.001, 10000);
 		Policy p = planner.planFromState(initialState);
 	
 		PolicyUtils.rollout(p, initialState, domain.getModel()).write(outputPath + "vi");
@@ -197,10 +198,10 @@ public class GridWorldProblem {
 
 	public void QLearningExample(String outputPath){
 		
-		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0., 0.5);
+		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0.3, 0.99);
 	
 		//run learning for 50 episodes
-		for(int i = 0; i < 100; i++){
+		for(int i = 0; i < 200; i++){
 			Episode e = agent.runLearningEpisode(env);
 	
 			e.write(outputPath + "ql_" + i);
@@ -274,6 +275,31 @@ public class GridWorldProblem {
 	
 	}
 
+	public void valueIterationExperimenter(String outputPath){
+		
+		List<Double[]> results = new ArrayList<Double[]>();
+		for (double i : new double[] {97.9, 98, 99, 99.9}) {
+			double gamma = (double) i / 100;
+			Planner planner = new ValueIteration(domain, gamma, hashingFactory, 0.0001, 100000);
+
+			Double[] experimentResultsOut = new Double[4];
+			Double[] experimentResults = PlanningUtils.runEpisode(planner, domain, initialState, outputPath + "vi_gamma_" + gamma );
+			
+			experimentResultsOut[0] = experimentResults[0];
+			experimentResultsOut[1] = experimentResults[1];
+			experimentResultsOut[2] = experimentResults[2];
+			experimentResultsOut[3] = gamma;
+
+			results.add(experimentResultsOut);
+		}
+		for (Double[] result : results) {
+			for (Double r : result ) {
+				System.out.print(r);
+				System.out.print("\t");
+			}
+			System.out.println("");
+		}
+	}
 
 	public void qLearningRateExperimenter(){
 		
@@ -284,8 +310,8 @@ public class GridWorldProblem {
 		 * Create factories for Q-learning agent and SARSA agent to compare
 		 */
 		List<LearningAgentFactory> factories = new ArrayList<LearningAgentFactory>();
-		for (int i : new int[] {1, 5, 10}) {
-			double learningRate = (double) i / 10;
+		for (int i : new int[] {70, 75, 99}) {
+			double learningRate = (double) i / 100;
 			LearningAgentFactory qLearningFactory = new LearningAgentFactory() {
 
 				public String getAgentName() {
@@ -300,7 +326,7 @@ public class GridWorldProblem {
 			factories.add(qLearningFactory);
 		}
 		LearningAlgorithmExperimenter exp = new LearningAlgorithmExperimenter(
-			env, 10, 100, factories.toArray(new LearningAgentFactory[0]));
+			env, 50, 20, factories.toArray(new LearningAgentFactory[0]));
 		exp.setUpPlottingConfiguration(500, 250, 2, 1000,
 				TrialMode.MOST_RECENT_AND_AVERAGE,
 				PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
@@ -344,20 +370,21 @@ public class GridWorldProblem {
 
 	public static void main(String[] args) {
 	
-		GridWorldProblem example = new GridWorldProblem();
-		String outputPath = "output_maze2/"; //directory to record results
+		GridWorldProblem example = new GridWorldProblem("maze6.csv");
+		String outputPath = "output_maze6/"; //directory to record results
 		
 		//run example
 		//example.BFSExample(outputPath);
-		//example.QLearningExample(outputPath);
+		// example.QLearningExample(outputPath);
 		// example.valueIterationExample(outputPath);
 		// example.policyIterationExample(outputPath);
 		//example.experimenterAndPlotter();
 		//example.qLearningRateExperimenter();
-		example.qLearningGammaExperimenter();
+		//example.qLearningGammaExperimenter();
 		
+		example.valueIterationExperimenter(outputPath);
+
 		//run the visualizer
-		// example.visualize(outputPath);
-	
+		example.visualize(outputPath);		
 	}
 }
