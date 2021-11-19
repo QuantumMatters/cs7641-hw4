@@ -1,0 +1,6 @@
+box2d-py
+gym
+jupyterlab
+matplotlib
+networkx
+pandas
