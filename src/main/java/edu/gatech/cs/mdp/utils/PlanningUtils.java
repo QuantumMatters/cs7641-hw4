@@ -1,4 +1,4 @@
-package edu.gatech.cs.mdp;
+package edu.gatech.cs.mdp.utils;
 
 import burlap.behavior.singleagent.planning.Planner;
 import burlap.behavior.valuefunction.ValueFunction;
@@ -9,10 +9,8 @@ import burlap.behavior.policy.Policy;
 import burlap.behavior.policy.PolicyUtils;
 
 import java.lang.Math;
-import java.util.List;
 import java.util.ArrayList;
-
-import edu.gatech.cs.mdp.GridWorldProblem;
+import java.util.List;
 
 public class PlanningUtils {
 
@@ -20,7 +18,6 @@ public class PlanningUtils {
     and the planning time in milliseconds.
     */
     public static Double[] runEpisode(Planner planner, OOSADomain domain, State initialState, String outputPath) {
-
         long startTime = System.nanoTime();
         Policy p = planner.planFromState(initialState);
         long endTime = System.nanoTime();

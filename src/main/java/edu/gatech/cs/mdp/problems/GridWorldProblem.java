@@ -1,4 +1,4 @@
-package edu.gatech.cs.mdp;
+package edu.gatech.cs.mdp.problems;
 
 import burlap.behavior.policy.GreedyQPolicy;
 import burlap.behavior.policy.Policy;
@@ -60,8 +60,8 @@ import com.opencsv.CSVWriter;
 
 import java.util.ArrayList;
 
-import edu.gatech.cs.mdp.Maze;
-import edu.gatech.cs.mdp.PlanningUtils;
+import edu.gatech.cs.mdp.utils.Maze;
+import edu.gatech.cs.mdp.utils.PlanningUtils;
 
 
 public class GridWorldProblem {

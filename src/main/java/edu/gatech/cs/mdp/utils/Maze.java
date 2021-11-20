@@ -3,7 +3,7 @@ Inspired by Santiago Valdarrama's work on this assignment:
 https://github.com/svpino/cs7641-assignment4/blob/master/assignment4/src/main/java/edu/gatech/cs7641/assignment4/artifacts/Problem.java
 */
 
-package edu.gatech.cs.mdp;
+package edu.gatech.cs.mdp.utils;
 
 import java.io.FileReader;
 import java.io.IOException;
