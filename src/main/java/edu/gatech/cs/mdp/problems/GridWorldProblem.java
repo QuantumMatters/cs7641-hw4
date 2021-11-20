@@ -51,10 +51,14 @@ import burlap.statehashing.simple.SimpleHashableStateFactory;
 import burlap.visualizer.Visualizer;
 
 import java.awt.*;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import com.opencsv.CSVWriter;
 
@@ -80,13 +84,20 @@ public class GridWorldProblem {
 	int height;
 	
 
-	public GridWorldProblem(String MazeFile){
+	public GridWorldProblem(
+		String MazeFile,
+		double transProb,
+		double goalReward,
+		double hazardReward,
+		double normalTileReward
+
+		){
 		
 		// read a csv representing the grid world
 		Maze maze  = new Maze(MazeFile);
 		gwdg = new GridWorldDomain(maze.getHeight(), maze.getWidth());
 		gwdg.setMap(maze.getMap());
-		gwdg.setProbSucceedTransitionDynamics(0.8);
+		gwdg.setProbSucceedTransitionDynamics(transProb);
 
 		this.width = maze.getWidth();
 		this.height = maze.getHeight();
@@ -103,12 +114,11 @@ public class GridWorldProblem {
 										  new GridLocation(goal[0], goal[1], "loc0"));
 
 		// handle rewards
-		GridWorldRewardFunction rf = new GridWorldRewardFunction(this.width,
-																 this.height, -1);
+		GridWorldRewardFunction rf = new GridWorldRewardFunction(this.width, this.height, normalTileReward);
 
-		rf.setReward(goal[0], goal[1], 50);
+		rf.setReward(goal[0], goal[1], goalReward);
 		for (int[] hazard : maze.getHazards()) {
-			rf.setReward(hazard[0], hazard[1], -3);
+			rf.setReward(hazard[0], hazard[1], hazardReward);
 		}
 		gwdg.setRf(rf);
 
@@ -281,8 +291,21 @@ public class GridWorldProblem {
 	
 	}
 
-	public void valueIterationExperimenter(String outputPath) throws IOException{
+	public void valueIterationExperimenter(
+		String outputPath,
+		double[] gammaArray,
+		int minIter,
+		int stepSize,
+		int maxIter,
+		int numTrials,
+		double viConvergenceCriterion
+		) throws IOException{
 		
+		Path path = FileSystems.getDefault().getPath(outputPath);
+		if (Files.notExists(path)) {
+			new File(outputPath).mkdirs();
+		}
+			
 		// setup csv
 		CSVWriter writer = new CSVWriter(new FileWriter(outputPath + "vi_gamma_experiment.csv"));
 		// write header
@@ -290,22 +313,18 @@ public class GridWorldProblem {
 
 		List<Double[]> results = new ArrayList<Double[]>();
 		DecimalFormat df = new DecimalFormat("#.####");
-		for (double gamma : new double[] {0.98, 0.99, 0.999, 0.9999}) {
+		for (double gamma : gammaArray) {
 			System.out.println(gamma);
-
-			int minIter = 150;
-			int stepSize = 1;
-			int maxIter = 10000;
 			
 			// run experiment as a function of max iterations
-			for (int trialNum=0; trialNum<10; trialNum++){
+			for (int trialNum=0; trialNum<numTrials; trialNum++){
 
 				// convergence criteria
 				double pastMeanV = Math.pow(10,10);
 				for (int numIters = minIter; numIters < maxIter; numIters += stepSize) {
 				
 					System.out.println("Starting run for gamma:" + gamma + " numIters:" + numIters + " trial:" + trialNum);
-					Planner planner = new ValueIteration(domain, gamma, hashingFactory, Math.pow(10, -10), numIters);
+					Planner planner = new ValueIteration(domain, gamma, hashingFactory, viConvergenceCriterion / 10, numIters);
 					
 					Double[] experimentResultsOut = new Double[7];
 					Double[] experimentResults = PlanningUtils.runEpisode(
@@ -342,7 +361,7 @@ public class GridWorldProblem {
 
 					// check convergence
 					System.out.println(meanV);
-					if (Math.abs(meanV - pastMeanV) < Math.pow(10, -5)) {
+					if (Math.abs(meanV - pastMeanV) < viConvergenceCriterion) {
 						System.out.println("Converged after " + numIters + " iterations");
 						break;
 					}
@@ -429,26 +448,26 @@ public class GridWorldProblem {
 
 	public static void main(String[] args) {
 	
-		GridWorldProblem example = new GridWorldProblem("maze6.csv");
-		String outputPath = "output_maze6/"; //directory to record results
-		
-		//run example
-		//example.BFSExample(outputPath);
-		// example.QLearningExample(outputPath);
-		// example.valueIterationExample(outputPath);
-		// example.policyIterationExample(outputPath);
-		//example.experimenterAndPlotter();
-		//example.qLearningRateExperimenter();
-		//example.qLearningGammaExperimenter();
-		
-		try {
-			example.valueIterationExperimenter(outputPath);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		//run the visualizer
-		example.visualize(outputPath);		
+		// GridWorldProblem example = new GridWorldProblem("maze6.csv");
+		// String outputPath = "output_maze6/"; //directory to record results
+		// 
+		// //run example
+		// //example.BFSExample(outputPath);
+		// // example.QLearningExample(outputPath);
+		// // example.valueIterationExample(outputPath);
+		// // example.policyIterationExample(outputPath);
+		// //example.experimenterAndPlotter();
+		// //example.qLearningRateExperimenter();
+		// //example.qLearningGammaExperimenter();
+		// 
+		// try {
+		// 	example.valueIterationExperimenter(outputPath);
+		// } catch (IOException e) {
+		// 	// TODO Auto-generated catch block
+		// 	e.printStackTrace();
+		// }
+// 
+		// //run the visualizer
+		// example.visualize(outputPath);		
 	}
 }
