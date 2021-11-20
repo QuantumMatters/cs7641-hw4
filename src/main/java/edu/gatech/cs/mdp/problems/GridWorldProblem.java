@@ -385,6 +385,100 @@ public class GridWorldProblem {
 		}
 	}
 
+	public void policyIterationExperimenter(
+		String outputPath,
+		double[] gammaArray,
+		int minIter,
+		int stepSize,
+		int maxIter,
+		int numTrials,
+		double piConvergenceCriterion
+		) throws IOException{
+		
+		Path path = FileSystems.getDefault().getPath(outputPath);
+		if (Files.notExists(path)) {
+			new File(outputPath).mkdirs();
+		}
+			
+		// setup csv
+		CSVWriter writer = new CSVWriter(new FileWriter(outputPath + "pi_gamma_experiment.csv"));
+		// write header
+		writer.writeNext(new String[] {"numActions", "CumulativeReward", "PlanningTime (ms)", "meanV", "gamma", "maxIters", "trialNum"});
+
+		List<Double[]> results = new ArrayList<Double[]>();
+		DecimalFormat df = new DecimalFormat("#.####");
+		for (double gamma : gammaArray) {
+			System.out.println(gamma);
+			
+			// run experiment as a function of max iterations
+			for (int trialNum=0; trialNum<numTrials; trialNum++){
+
+				// convergence criteria
+				double pastMeanV = Math.pow(10,10);
+				int numConverged = 0;
+				for (int numIters = minIter; numIters < maxIter; numIters += stepSize) {
+				
+					System.out.println("Starting run for gamma:" + gamma + " numIters:" + numIters + " trial:" + trialNum);
+					Planner planner = new PolicyIteration(domain, gamma, hashingFactory, piConvergenceCriterion / 10, 10000, numIters);
+
+					Double[] experimentResultsOut = new Double[7];
+					Double[] experimentResults = PlanningUtils.runEpisode(
+						planner, domain, initialState, outputPath + "pi_gamma_" + df.format(gamma) + "_trial_" + trialNum
+					);
+
+					// get meanV convergence data
+					List<State> allStates = StateReachability.getReachableStates(initialState, domain, hashingFactory);
+									
+					ValueFunction vF = (ValueFunction) planner;
+
+					double sum = 0;
+					for (State s : allStates) {
+						sum += vF.value(s);
+					}
+					double meanV = sum / allStates.size();
+
+					// prepare results
+					experimentResultsOut[0] = experimentResults[0];
+					experimentResultsOut[1] = experimentResults[1];
+					experimentResultsOut[2] = experimentResults[2];
+					experimentResultsOut[3] = meanV;
+					experimentResultsOut[4] = gamma;
+					experimentResultsOut[5] = (double) numIters;
+					experimentResultsOut[6] = (double) trialNum;
+					
+					results.add(experimentResultsOut);
+					String[] stringResults = new String[7];
+					for (int recordIndex=0; recordIndex < experimentResultsOut.length; recordIndex++) {
+						stringResults[recordIndex] = experimentResultsOut[recordIndex].toString();
+					}
+					
+					writer.writeNext(stringResults);
+
+					// check convergence
+					System.out.println(meanV);
+					if (Math.abs(meanV - pastMeanV) < piConvergenceCriterion) {
+						System.out.println("Converged after " + numIters + " iterations");
+						numConverged += 1;
+					} else {
+						numConverged = 0;
+					}
+					if (numConverged > 2) {
+						break;
+					}
+					pastMeanV = meanV;
+				}
+			}
+		}
+		writer.close();
+		for (Double[] result : results) {
+			for (Double r : result ) {
+				System.out.print(r);
+				System.out.print("\t");
+			}
+			System.out.println("");
+		}
+	}
+
 	public void qLearningRateExperimenter(){
 		
 		//different reward function for more structured performance plots
