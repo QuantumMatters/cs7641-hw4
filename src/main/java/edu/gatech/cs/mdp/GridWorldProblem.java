@@ -51,7 +51,13 @@ import burlap.statehashing.simple.SimpleHashableStateFactory;
 import burlap.visualizer.Visualizer;
 
 import java.awt.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.List;
+
+import com.opencsv.CSVWriter;
+
 import java.util.ArrayList;
 
 import edu.gatech.cs.mdp.Maze;
@@ -102,7 +108,7 @@ public class GridWorldProblem {
 
 		rf.setReward(goal[0], goal[1], 50);
 		for (int[] hazard : maze.getHazards()) {
-			rf.setReward(hazard[0], hazard[1], -10);
+			rf.setReward(hazard[0], hazard[1], -3);
 		}
 		gwdg.setRf(rf);
 
@@ -275,23 +281,76 @@ public class GridWorldProblem {
 	
 	}
 
-	public void valueIterationExperimenter(String outputPath){
+	public void valueIterationExperimenter(String outputPath) throws IOException{
 		
+		// setup csv
+		CSVWriter writer = new CSVWriter(new FileWriter(outputPath + "vi_gamma_experiment.csv"));
+		// write header
+		writer.writeNext(new String[] {"numActions", "CumulativeReward", "PlanningTime (ms)", "meanV", "gamma", "maxIters", "trialNum"});
+
 		List<Double[]> results = new ArrayList<Double[]>();
-		for (double i : new double[] {97.9, 98, 99, 99.9}) {
-			double gamma = (double) i / 100;
-			Planner planner = new ValueIteration(domain, gamma, hashingFactory, 0.0001, 100000);
+		DecimalFormat df = new DecimalFormat("#.####");
+		for (double gamma : new double[] {0.98, 0.99, 0.999, 0.9999}) {
+			System.out.println(gamma);
 
-			Double[] experimentResultsOut = new Double[4];
-			Double[] experimentResults = PlanningUtils.runEpisode(planner, domain, initialState, outputPath + "vi_gamma_" + gamma );
+			int minIter = 150;
+			int stepSize = 1;
+			int maxIter = 10000;
 			
-			experimentResultsOut[0] = experimentResults[0];
-			experimentResultsOut[1] = experimentResults[1];
-			experimentResultsOut[2] = experimentResults[2];
-			experimentResultsOut[3] = gamma;
+			// run experiment as a function of max iterations
+			for (int trialNum=0; trialNum<10; trialNum++){
 
-			results.add(experimentResultsOut);
+				// convergence criteria
+				double pastMeanV = Math.pow(10,10);
+				for (int numIters = minIter; numIters < maxIter; numIters += stepSize) {
+				
+					System.out.println("Starting run for gamma:" + gamma + " numIters:" + numIters + " trial:" + trialNum);
+					Planner planner = new ValueIteration(domain, gamma, hashingFactory, Math.pow(10, -10), numIters);
+					
+					Double[] experimentResultsOut = new Double[7];
+					Double[] experimentResults = PlanningUtils.runEpisode(
+						planner, domain, initialState, outputPath + "vi_gamma_" + df.format(gamma) + "_trial_" + trialNum
+					);
+
+					// get meanV convergence data
+					List<State> allStates = StateReachability.getReachableStates(initialState, domain, hashingFactory);
+									
+					ValueFunction vF = (ValueFunction) planner;
+
+					double sum = 0;
+					for (State s : allStates) {
+						sum += vF.value(s);
+					}
+					double meanV = sum / allStates.size();
+
+					// prepare results
+					experimentResultsOut[0] = experimentResults[0];
+					experimentResultsOut[1] = experimentResults[1];
+					experimentResultsOut[2] = experimentResults[2];
+					experimentResultsOut[3] = meanV;
+					experimentResultsOut[4] = gamma;
+					experimentResultsOut[5] = (double) numIters;
+					experimentResultsOut[6] = (double) trialNum;
+					
+					results.add(experimentResultsOut);
+					String[] stringResults = new String[7];
+					for (int recordIndex=0; recordIndex < experimentResultsOut.length; recordIndex++) {
+						stringResults[recordIndex] = experimentResultsOut[recordIndex].toString();
+					}
+					
+					writer.writeNext(stringResults);
+
+					// check convergence
+					System.out.println(meanV);
+					if (Math.abs(meanV - pastMeanV) < Math.pow(10, -5)) {
+						System.out.println("Converged after " + numIters + " iterations");
+						break;
+					}
+					pastMeanV = meanV;
+				}
+			}
 		}
+		writer.close();
 		for (Double[] result : results) {
 			for (Double r : result ) {
 				System.out.print(r);
@@ -382,7 +441,12 @@ public class GridWorldProblem {
 		//example.qLearningRateExperimenter();
 		//example.qLearningGammaExperimenter();
 		
-		example.valueIterationExperimenter(outputPath);
+		try {
+			example.valueIterationExperimenter(outputPath);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		//run the visualizer
 		example.visualize(outputPath);		
