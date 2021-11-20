@@ -321,6 +321,7 @@ public class GridWorldProblem {
 
 				// convergence criteria
 				double pastMeanV = Math.pow(10,10);
+				int numConverged = 0;
 				for (int numIters = minIter; numIters < maxIter; numIters += stepSize) {
 				
 					System.out.println("Starting run for gamma:" + gamma + " numIters:" + numIters + " trial:" + trialNum);
@@ -363,6 +364,11 @@ public class GridWorldProblem {
 					System.out.println(meanV);
 					if (Math.abs(meanV - pastMeanV) < viConvergenceCriterion) {
 						System.out.println("Converged after " + numIters + " iterations");
+						numConverged += 1;
+					} else {
+						numConverged = 0;
+					}
+					if (numConverged > 2) {
 						break;
 					}
 					pastMeanV = meanV;
