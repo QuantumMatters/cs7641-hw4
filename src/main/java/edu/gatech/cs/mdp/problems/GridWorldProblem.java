@@ -385,6 +385,91 @@ public class GridWorldProblem {
 		}
 	}
 
+	public void policyIterationMeanV(
+		String outputPath,
+		double[] gammaArray,
+		int minIter,
+		int stepSize,
+		int maxIter,
+		int numTrials,
+		double piConvergenceCriterion
+		) throws IOException {
+		
+		Path path = FileSystems.getDefault().getPath(outputPath);
+		if (Files.notExists(path)) {
+			new File(outputPath).mkdirs();
+		}
+
+		// setup csv
+		CSVWriter writer = new CSVWriter(new FileWriter(outputPath + "pi_gamma_experiment_just_meanV.csv"));
+		// write header
+		writer.writeNext(new String[] {"PlanningTime (ms)", "meanV", "gamma", "maxIters", "trialNum"});
+
+		List<Double[]> results = new ArrayList<Double[]>();
+		DecimalFormat df = new DecimalFormat("#.####");
+		for (double gamma : gammaArray) {
+			System.out.println(gamma);
+			
+			// run experiment as a function of max iterations
+			for (int trialNum=0; trialNum<numTrials; trialNum++){
+
+				// convergence criteria
+				double pastMeanV = Math.pow(10,10);
+				int numConverged = 0;
+				for (int numIters = minIter; numIters < maxIter; numIters += stepSize) {
+				
+					System.out.println("Starting run for gamma:" + gamma + " numIters:" + numIters + " trial:" + trialNum);
+					Planner planner = new PolicyIteration(domain, gamma, hashingFactory, piConvergenceCriterion / 10, 10000, numIters);
+
+					Double[] experimentResultsOut = new Double[5];
+					Double experimentResults = PlanningUtils.runPlanning(
+						planner, domain, initialState, outputPath + "pi_gamma_" + df.format(gamma) + "_trial_" + trialNum
+					);
+
+					// get meanV convergence data
+					List<State> allStates = StateReachability.getReachableStates(initialState, domain, hashingFactory);
+									
+					ValueFunction vF = (ValueFunction) planner;
+
+					double sum = 0;
+					for (State s : allStates) {
+						sum += vF.value(s);
+					}
+					double meanV = sum / allStates.size();
+
+					// prepare results
+					experimentResultsOut[0] = experimentResults;
+					experimentResultsOut[1] = meanV;
+					experimentResultsOut[2] = gamma;
+					experimentResultsOut[3] = (double) numIters;
+					experimentResultsOut[4] = (double) trialNum;
+					
+					results.add(experimentResultsOut);
+					String[] stringResults = new String[5];
+					for (int recordIndex=0; recordIndex < experimentResultsOut.length; recordIndex++) {
+						stringResults[recordIndex] = experimentResultsOut[recordIndex].toString();
+					}
+					
+					writer.writeNext(stringResults);
+
+					// check convergence
+					System.out.println(meanV);
+					if (Math.abs(meanV - pastMeanV) < piConvergenceCriterion) {
+						System.out.println("Converged after " + numIters + " iterations");
+						numConverged += 1;
+					} else {
+						numConverged = 0;
+					}
+					if (numConverged > 2) {
+						break;
+					}
+					pastMeanV = meanV;
+				}
+			}
+		}
+		writer.close();
+	}
+
 	public void policyIterationExperimenter(
 		String outputPath,
 		double[] gammaArray,
