@@ -30,6 +30,16 @@ public class LargeMaze {
         }
     }
 
+    public void runGammaVIExperimentJustPlanning() {
+
+        try {
+            gwp.valueIterationMeanV("output_maze9_2/", new double[] {0.99, 0.999, 0.9999}, 1, 1, 100, 1, Math.pow(10,-5));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     public void runGammaPIExperiment() {
 
         try {
@@ -52,7 +62,8 @@ public class LargeMaze {
     public static void main(String[] args) {
         LargeMaze sm = new LargeMaze();
         //sm.runGammaExperiment();
-        sm.runGammaPIExperiment();
-        sm.runGammaPIExperimentJustPlanning();
+        sm.runGammaVIExperimentJustPlanning();
+        // sm.runGammaPIExperiment();
+        // sm.runGammaPIExperimentJustPlanning();
     }
 }
