@@ -14,6 +14,18 @@ import java.util.List;
 
 public class PlanningUtils {
 
+    /* Runs planning without rolling out the policy
+    */
+    public static Double runPlanning(Planner planner, OOSADomain domain, State initialState, String outputPath) {
+
+        long startTime = System.nanoTime();
+        planner.planFromState(initialState);
+        long endTime = System.nanoTime();
+        Double planningTimeMillis = (double) (endTime - startTime) * Math.pow(10, -6) ;
+
+        return planningTimeMillis;
+    }
+
     /* Runs an episode of a planning algorithm collecting the total number of actions, the cumulative reward,
     and the planning time in milliseconds.
     */
