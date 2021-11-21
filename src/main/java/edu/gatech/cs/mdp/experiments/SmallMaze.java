@@ -31,9 +31,20 @@ public class SmallMaze {
         }
     }
 
+    public void runGammaPIExperimentJustPlanning() {
+
+        try {
+            gwp.policyIterationMeanV("output_maze6_4/", new double[] {0.9999}, 1, 1, 100, 1, Math.pow(10,-5));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) {
         SmallMaze sm = new SmallMaze();
         // sm.runGammaVIExperiment();
-        sm.runGammaPIExperiment();
+        // sm.runGammaPIExperiment();
+        sm.runGammaPIExperimentJustPlanning();
     }
 }
