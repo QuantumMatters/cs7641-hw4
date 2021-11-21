@@ -30,8 +30,29 @@ public class LargeMaze {
         }
     }
 
+    public void runGammaPIExperiment() {
+
+        try {
+            gwp.policyIterationExperimenter("output_maze9_2/", new double[] {0.99, 0.999, 0.9999}, 10, 1, 100, 5, Math.pow(10,-5));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    public void runGammaPIExperimentJustPlanning() {
+
+        try {
+            gwp.policyIterationMeanV("output_maze9_2/", new double[] {0.99, 0.999, 0.9999}, 1, 1, 100, 1, Math.pow(10,-5));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
     public static void main(String[] args) {
         LargeMaze sm = new LargeMaze();
-        sm.runGammaExperiment();
+        //sm.runGammaExperiment();
+        sm.runGammaPIExperiment();
+        sm.runGammaPIExperimentJustPlanning();
     }
 }
