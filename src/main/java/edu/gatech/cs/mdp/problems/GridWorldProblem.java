@@ -309,7 +309,7 @@ public class GridWorldProblem {
 		// setup csv
 		CSVWriter writer = new CSVWriter(new FileWriter(outputPath + "vi_gamma_experiment_just_meanV.csv"));
 		// write header
-		writer.writeNext(new String[] {"numActions", "CumulativeReward", "PlanningTime (ms)", "meanV", "gamma", "maxIters", "trialNum"});
+		writer.writeNext(new String[] {"PlanningTime (ms)", "meanV", "gamma", "maxIters", "trialNum"});
 
 		List<Double[]> results = new ArrayList<Double[]>();
 		DecimalFormat df = new DecimalFormat("#.####");
