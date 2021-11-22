@@ -33,7 +33,7 @@ public class LargeMaze {
     public void runGammaVIExperimentJustPlanning() {
 
         try {
-            gwp.valueIterationMeanV("output_maze9_2/", new double[] {0.99, 0.999, 0.9999}, 1, 1, 100, 1, Math.pow(10,-5));
+            gwp.valueIterationMeanV("output_maze9_2/", new double[] {0.99, 0.999, 0.9999}, 1, 1, 100, 1, Math.pow(10,-3));
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
