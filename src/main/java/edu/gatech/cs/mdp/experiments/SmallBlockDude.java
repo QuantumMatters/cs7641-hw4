@@ -51,12 +51,22 @@ public class SmallBlockDude {
         }
     }
     */
+    public void runGammaQLearningExperiment() {
+		String outputPath = "output_small_blockdude/";
+		double[] alphaArray = new double[]{1.0};
+		double[] gammaArray = new double[]{0.999};
+		double[] epsilonArray = new double[]{0.9};
+		int numTrials = 5;
+		int numEpisodes = 5;
+        bwp.QLearningGridExperimenter(outputPath, alphaArray, gammaArray, epsilonArray, numTrials, numEpisodes);
+    }
 
     public static void main(String[] args) {
-        LargeBlockDude sm = new LargeBlockDude();
+        SmallBlockDude sm = new SmallBlockDude();
         // sm.runGammaVIExperiment();
-        sm.runGammaVIExperimentJustPlanning();
+        // sm.runGammaVIExperimentJustPlanning();
         // sm.runGammaPIExperiment();
         // sm.runGammaPIExperimentJustPlanning();
+        sm.runGammaQLearningExperiment();
     }
 }
