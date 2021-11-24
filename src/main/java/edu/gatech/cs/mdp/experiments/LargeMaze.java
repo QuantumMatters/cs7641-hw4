@@ -59,11 +59,27 @@ public class LargeMaze {
             e.printStackTrace();
         }
     }
+
+    public void runGammaQLearningExperiment(String outputPath) {
+		double[] alphaArray = new double[]{0.7, 0.8, 0.9};
+		double[] gammaArray = new double[]{0.7, 0.8, 0.9};
+		double[] epsilonArray = new double[]{0.7, 0.8, 0.9};
+		int numTrials = 1;
+		int numEpisodes = 100;
+        gwp.QLearningGridExperimenter(outputPath, alphaArray, gammaArray, epsilonArray, numTrials, numEpisodes);
+    }
+
     public static void main(String[] args) {
         LargeMaze sm = new LargeMaze();
-        //sm.runGammaExperiment();
-        sm.runGammaVIExperimentJustPlanning();
+        //s m.runGammaExperiment();
+        // sm.runGammaVIExperimentJustPlanning();
         // sm.runGammaPIExperiment();
         // sm.runGammaPIExperimentJustPlanning();
+
+        for (int i=4; i<8; i++) {
+            sm.runGammaQLearningExperiment("output_maze9_" + i + "/");
+        }
     }
 }
+
+

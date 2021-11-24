@@ -51,11 +51,22 @@ public class SmallMaze {
         }
     }
 
+    public void runGammaQLearningExperiment() {
+		String outputPath = "output_maze6_5/";
+		double[] alphaArray = new double[]{0.99};
+		double[] gammaArray = new double[]{0.999};
+		double[] epsilonArray = new double[]{0.9};
+		int numTrials = 5;
+		int numEpisodes = 100;
+        gwp.QLearningGridExperimenter(outputPath, alphaArray, gammaArray, epsilonArray, numTrials, numEpisodes);
+    }
+
     public static void main(String[] args) {
         SmallMaze sm = new SmallMaze();
         // sm.runGammaVIExperiment();
-        sm.runGammaVIExperimentJustPlanning();
+        // sm.runGammaVIExperimentJustPlanning();
         // sm.runGammaPIExperiment();
         // sm.runGammaPIExperimentJustPlanning();
+        sm.runGammaQLearningExperiment();
     }
 }

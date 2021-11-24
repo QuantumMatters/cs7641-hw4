@@ -1,5 +1,6 @@
 package edu.gatech.cs.mdp.problems;
 
+import burlap.behavior.policy.EpsilonGreedy;
 import burlap.behavior.policy.GreedyQPolicy;
 import burlap.behavior.policy.Policy;
 import burlap.behavior.policy.PolicyUtils;
@@ -66,6 +67,7 @@ import java.util.ArrayList;
 
 import edu.gatech.cs.mdp.utils.Maze;
 import edu.gatech.cs.mdp.utils.PlanningUtils;
+import edu.gatech.cs.mdp.utils.QLearningUtils;
 
 
 public class GridWorldProblem {
@@ -723,10 +725,63 @@ public class GridWorldProblem {
 	
 	}
 
+	public void QLearningGridExperimenter(
+		String outputPath,
+		double[] alphaArray,
+		double[] gammaArray,
+		double[] epsilonArray,
+		int numTrials,
+		int numEpisodes) {
+
+		/*
+		QLearningUtils qlu = new QLearningUtils(domain, env, hashingFactory);
+		qlu.runExperiment(outputPath, alphaArray, gammaArray, epsilonArray, numTrials, numEpisodes);
+		*/
+		List<LearningAgentFactory> factories = new ArrayList<LearningAgentFactory>();
+
+
+        int numRuns = alphaArray.length * gammaArray.length * epsilonArray.length * numTrials * numEpisodes;
+        System.out.println("Total Runs: " + numRuns);
+
+        for (double alpha : alphaArray) {
+            for (double gamma : gammaArray) {
+                for (double epsilon : epsilonArray) {
+                    LearningAgentFactory qLearningFactory = new LearningAgentFactory() {
+
+                        public String getAgentName() {
+                            return alpha + "," + gamma + "," + epsilon;
+                        }
+
+                        public LearningAgent generateAgent() {
+							int maxSteps = 5000;
+                            QLearning agent = new QLearning(domain, gamma, hashingFactory, 0.1, alpha, maxSteps);
+                            EpsilonGreedy policy = new EpsilonGreedy(agent, epsilon);
+							agent.setLearningPolicy(policy);
+							return agent;
+                        }
+                    };
+                    factories.add(qLearningFactory);
+                }
+            }
+		}
+		LearningAlgorithmExperimenter exp = new LearningAlgorithmExperimenter(
+			env, numTrials, numEpisodes, factories.toArray(new LearningAgentFactory[0]));
+		exp.setUpPlottingConfiguration(500, 250, 2, 1000,
+				TrialMode.MOST_RECENT_AND_AVERAGE,
+				PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
+				PerformanceMetric.AVERAGE_EPISODE_REWARD,
+				PerformanceMetric.STEPS_PER_EPISODE);
+		exp.toggleVisualPlots(false);
+		exp.startExperiment();
+		exp.writeStepAndEpisodeDataToCSV(outputPath + "QLearningGridResults.csv");
+	}
+
 	public static void main(String[] args) {
 	
-		// GridWorldProblem example = new GridWorldProblem("maze6.csv");
-		// String outputPath = "output_maze6/"; //directory to record results
+		GridWorldProblem example = new GridWorldProblem("maze6.csv", 0.8, 50.0, -3.0, -1.0);
+		String outputPath = "output_maze6_4/"; //directory to record results
+
+		example.QLearningExample(outputPath);
 		// 
 		// //run example
 		// //example.BFSExample(outputPath);
@@ -745,6 +800,6 @@ public class GridWorldProblem {
 		// }
 // 
 		// //run the visualizer
-		// example.visualize(outputPath);		
+		example.visualize(outputPath);		
 	}
 }
