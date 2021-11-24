@@ -13,6 +13,7 @@ import java.util.List;
 
 import com.opencsv.CSVWriter;
 
+import burlap.behavior.policy.EpsilonGreedy;
 import burlap.behavior.policy.GreedyQPolicy;
 import burlap.behavior.policy.Policy;
 import burlap.behavior.policy.PolicyUtils;
@@ -58,6 +59,7 @@ import burlap.domain.singleagent.gridworld.GridWorldVisualizer;
 import burlap.domain.singleagent.gridworld.state.GridAgent;
 import burlap.domain.singleagent.gridworld.state.GridLocation;
 import burlap.domain.singleagent.gridworld.state.GridWorldState;
+import burlap.mdp.auxiliary.common.ConstantStateGenerator;
 import burlap.mdp.auxiliary.stateconditiontest.StateConditionTest;
 import burlap.mdp.auxiliary.stateconditiontest.TFGoalCondition;
 import burlap.mdp.core.TerminalFunction;
@@ -65,7 +67,9 @@ import burlap.mdp.core.state.State;
 import burlap.mdp.core.state.vardomain.VariableDomain;
 import burlap.mdp.singleagent.SADomain;
 import burlap.mdp.singleagent.common.GoalBasedRF;
+import burlap.mdp.singleagent.common.UniformCostRF;
 import burlap.mdp.singleagent.common.VisualActionObserver;
+import burlap.mdp.singleagent.environment.Environment;
 import burlap.mdp.singleagent.environment.SimulatedEnvironment;
 import burlap.mdp.singleagent.model.FactoredModel;
 import burlap.mdp.singleagent.model.RewardFunction;
@@ -84,6 +88,7 @@ public class BlockDudeProblem {
     State initialState;
     TerminalFunction tf;
     StateConditionTest sc;
+	RewardFunction rf;
     SimpleHashableStateFactory hashingFactory;
     int maxx;
     int maxy;
@@ -91,6 +96,12 @@ public class BlockDudeProblem {
 
 	public BlockDudeProblem(int size) {
         constructor = new BlockDude(25, 25);
+		tf = new BlockDudeTF();
+		constructor.setTf(tf);
+		sc = new TFGoalCondition(tf);
+		rf = new UniformCostRF();
+		constructor.setRf(rf);
+
         domain = constructor.generateDomain();
 
 		if (size == 1) {
@@ -100,8 +111,7 @@ public class BlockDudeProblem {
 		}
 
         hashingFactory = new SimpleHashableStateFactory();
-        tf = new BlockDudeTF();
-        sc = new TFGoalCondition(tf);
+        
         maxx = constructor.getMaxx();
         maxy = constructor.getMaxy();
 	}
@@ -485,6 +495,75 @@ public class BlockDudeProblem {
 		}
 	}
 
+	public void QLearningExample(String outputPath){
+		Environment env = new SimulatedEnvironment(domain, initialState);
+		LearningAgent agent = new QLearning(domain, 0.99, hashingFactory, 0.3, 0.99);
+	
+		//run learning for 50 episodes
+		for(int i = 0; i < 200; i++){
+			Episode e = agent.runLearningEpisode(env);
+	
+			e.write(outputPath + "ql_" + i);
+			System.out.println(i + ": " + e.maxTimeStep());
+	
+			//reset environment for next learning episode
+			env.resetEnvironment();
+		}
+		
+	}
+
+	public void QLearningGridExperimenter(
+		String outputPath,
+		double[] alphaArray,
+		double[] gammaArray,
+		double[] epsilonArray,
+		int numTrials,
+		int numEpisodes) {
+
+		/*
+		QLearningUtils qlu = new QLearningUtils(domain, env, hashingFactory);
+		qlu.runExperiment(outputPath, alphaArray, gammaArray, epsilonArray, numTrials, numEpisodes);
+		*/
+		List<LearningAgentFactory> factories = new ArrayList<LearningAgentFactory>();
+
+        int numRuns = alphaArray.length * gammaArray.length * epsilonArray.length * numTrials * numEpisodes;
+        System.out.println("Total Runs: " + numRuns);
+
+        for (double alpha : alphaArray) {
+            for (double gamma : gammaArray) {
+                for (double epsilon : epsilonArray) {
+                    LearningAgentFactory qLearningFactory = new LearningAgentFactory() {
+
+                        public String getAgentName() {
+                            return alpha + "," + gamma + "," + epsilon;
+                        }
+
+                        public LearningAgent generateAgent() {
+                            QLearning agent = new QLearning(domain, gamma, hashingFactory, 0., alpha);
+                            //EpsilonGreedy policy = new EpsilonGreedy(agent, epsilon);
+							//agent.setLearningPolicy(policy);
+							return agent;
+                        }
+                    };
+                    factories.add(qLearningFactory);
+                }
+            }
+		}
+		
+		Environment env = new SimulatedEnvironment(domain, initialState);
+		LearningAlgorithmExperimenter exp = new LearningAlgorithmExperimenter(
+			env, numTrials, numEpisodes, factories.toArray(new LearningAgentFactory[0]));
+		exp.setUpPlottingConfiguration(500, 250, 2, 1000,
+				TrialMode.MOST_RECENT_AND_AVERAGE,
+				PerformanceMetric.CUMULATIVE_STEPS_PER_EPISODE,
+				PerformanceMetric.AVERAGE_EPISODE_REWARD,
+				PerformanceMetric.STEPS_PER_EPISODE);
+		exp.toggleTrialLengthInterpretation(false);
+		// exp.toggleVisualPlots(false);
+		exp.startExperiment();
+		exp.writeStepAndEpisodeDataToCSV(outputPath + "QLearningGridResults.csv");
+	}
+
 	public static void main(String[] args) {
 	
 		BlockDudeProblem example = new BlockDudeProblem(0);
@@ -493,7 +572,8 @@ public class BlockDudeProblem {
         //run example
         // example.AStarExample(outputPath);
         // example.BFSExample(outputPath);
-        example.valueIterationExample(outputPath);
+        // example.valueIterationExample(outputPath);
+		example.QLearningExample(outputPath);
 
 		//run the visualizer
 		example.visualize(outputPath);		
