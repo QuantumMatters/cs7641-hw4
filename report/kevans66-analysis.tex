@@ -1,0 +1,437 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% University/School Laboratory Report
+% LaTeX Template
+% Version 3.1 (25/3/14)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Linux and Unix Users Group at Virginia Tech Wiki 
+% (https://vtluug.org/wiki/Example_LaTeX_chem_lab_report)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass{article}
+
+\usepackage[a4paper, total={7.5in, 10.5in}]{geometry}
+\usepackage{siunitx} % Provides the \SI{}{} and \si{} command for typesetting SI units
+\usepackage{graphicx} % Required for the inclusion of images
+\usepackage[square,numbers]{natbib} % Required to change bibliography style to APA
+\usepackage{amsmath} % Required for some math elements 
+\usepackage{float}
+\usepackage{booktabs}  % for Pandas tables
+\usepackage{wrapfig}
+\usepackage{natbib}
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true
+    }
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+\setlength{\parskip}{0.3em}
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\title{Markov Decision Processes \\ OMSCS 7641 - Machine Learning} % Title
+
+\author{Kasey J. Evans -- kevans66} % Author name
+
+\date{\today} % Date for the report
+
+\begin{document}
+\graphicspath{{../figures/}}
+
+\maketitle % Insert the title, author and date
+
+% If you wish to include an abstract, uncomment the lines below
+% \begin{abstract}
+% Abstract text
+% \end{abstract}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 1: Introduction
+%----------------------------------------------------------------------------------------
+
+In this report, we will explore three different algorithms for solving Markov Decision
+Processes (MDPs): Value Iteration, Policy Iteration, and Q-Learning. We will explore
+how these algorithms perform for two different MDPs: (1) navigating a maze with hazards
+and (2) an implementation of the Texas Instruments calculator puzzle game, BlockDude. For
+each of the two MDPs, we will explore two different sizes of state space. More details
+will come in the subsequent section of the report.
+
+%----------------------------------------------------------------------------------------
+%	SECTION 2: MDP Descriptions
+%----------------------------------------------------------------------------------------
+
+\section{MDP Descriptions} \label{MDPS}
+
+\textbf{Maze}
+
+The Maze problem is a grid world problem where an agent must navigate a maze with
+hazards to find a goal state. We will consider two mazes, one small and one large. The
+mazes were generated using a random walk algorithm that creates winding corridors. The
+start and goal states of the maze were selected such that the length of the shortest path
+between the two states was maximal to ensure the MDPs were not trivial. The goal state
+incurs a fairly large positive reward and each tile incurs a small negative reward to
+encourage the agent to find the goal state. Hazards with a slightly larger negative
+reward are randomly distributed throughout the maze. Finally, the agent has four move
+actions available: up, right, down, and left. However, when the agent takes an action,
+there is a 20\% chance that the agent will move in an unintended direction.
+
+Maze is an \underline{interesting} problem is that it is close to the fundamental grid world problems
+used to introduce reinforcement learning (RL): it will allow us to study the algorithms
+in a simple framework without getting caught in problem details.
+
+The facts of the Maze MDPs are summarized in table \ref{table:maze-facts} and visual
+representations of the mazes can be found in figures \ref{fig:small-maze} and
+\ref{fig:large-maze}. In the figures, a white 0 indicates a normal tile, a black 1
+indicates an impenetrable walls, a red h indicates a hazard, the green s indicates the
+start state, and the yellow g indicates the goal state.
+
+\begin{table}
+    \centering
+    \caption{Maze MDP Facts}
+    \label{table:maze-facts}
+    \begin{tabular}{lr}
+        \toprule
+         Normal Tile Reward & -1 \\
+         Hazard Reward & -3 \\
+         Goal Reward & +50 \\
+         Probability of Successful Action & 0.8 \\
+         Small Maze Number of States & 231 \\
+         Large Maze Number of States & 1,048 \\
+        \bottomrule
+        \end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.2]{SmallMaze.png}
+        \caption{Small Maze}
+        \label{fig:small-maze}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.2]{LargeMaze.png}
+        \caption{Large Maze}
+        \label{fig:large-maze}
+    \end{minipage}
+\end{figure}
+
+\textbf{BlockDude}
+
+The BlockDude problem is an implementation of the Texas Instruments calculator puzzle
+game by the same name. The objective is for an agent to reach a goal state. However, in
+order for the agent to reach the goal state, it must pick up and move blocks from the
+environment to build paths over obstacles (e.g. pits and hills in the landscape). Whereas
+the maze problem is a top-down view, BlockDude is a side-on view. The agent has four
+actions available: move east, move west, pick up block, place block. States are encoded
+by the agent's position, facing direction (east or west), whether or not the agent is
+holding a block, the position of each (interactive) block, and the positions of each
+(non-interactive) block in the landscape. Because of this, the state space can quickly
+grow to be quite large, posing a challenge to planning algorithms \cite{block_dude_desc}.
+Even relatively simple problems have a large state space as we shall see.
+
+The BlockDude problem is \underline{interesting} in that it allows us to formulate simple problems
+in large state spaces, which should allow us to differentiate the behavior between the
+model-based planning algorithms (VI \& PI) and the model-free learning algorithm
+(Q-Learning): Because VI \& PI need to exhaustively analyze the entire state-space,
+we should see them take a long time to solve even simple BlockDude problems that
+Q-Learning might more easily solve. It is also interesting in contrast to the Maze
+problem in that the agent is free to interactive with and change the environment, which
+should add another layer of complexity to the problem.
+
+The facts of the BlockDude MDPs are summarized in table \ref{table:bd-facts} and visual
+representations of the mazes can be found in figures \ref{fig:small-bd} and
+\ref{fig:large-bd}. In the figures, the white avatar indicates the agent, blocks with
+brick-like patterns indicate non-interactive blocks, blocks with inscribed squares
+indicate interactive blocks, and the door indicates the goal state. The agent has to
+move the interactive blocks around to build stairs and climb over obstacles to reach
+the goal state.
+
+\begin{table}
+    \centering
+    \caption{BlockDude MDP Facts}
+    \label{table:bd-facts}
+    \begin{tabular}{lr}
+        \toprule
+         Action Reward & -1 \\
+         Small BlockDude Number of States & 680 \\
+         Large BlockDude Number of States & 14,200 \\
+        \bottomrule
+        \end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.5]{SmallBlockDude.png}
+        \caption{Small BlockDude}
+        \label{fig:small-bd}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.5]{LargeBlockDude.png}
+        \caption{Large BlockDude}
+        \label{fig:large-bd}
+    \end{minipage}
+\end{figure}
+
+\textbf{Comparison of MDPs}
+
+There are similarities and differences between the two MDPs. Both MDPs are similar in that
+they both require traversing obstacles to reach a terminating goal state -- not all MDPs
+have terminating goal states. They are also similar in their reward functions: each
+action in the environments incurs some small negative reward, and the goal state represents
+the end of the negative rewards which drives the agent to the goal states. This property
+also allows us to easily create a benchmark for the model performance by computing the
+shortest path distance between the start and goal states using graph techniques.
+
+In contrast, we see that BlockDude's state space grows very quickly:
+Even relatively simple problems like the large problem (figure \ref{fig:large-bd}) have large
+state spaces due to how states are encoded. Larger state spaces might help differentiate the
+performance between the planning (VI \& PI) algorithms and the learning algorithm (RL). We
+also see that the agent is able to interact with and change the environment in the
+BlockDude problem. For these reasons, we might expect to see Q-Learning to perform
+well relative to VI \& PI on BlockDude.
+
+
+%----------------------------------------------------------------------------------------
+%	SECTION 2: Value Iteration
+%----------------------------------------------------------------------------------------
+
+\section{Value Iteration} \label{VI}
+
+Value Iteration (VI) is an algorithm for solving MDPs. Its goal is to estimate the utility of
+each state in the MDP. It starts with an arbitrary value of utility at each state. Running those
+values through the Bellman equation for utilities gives an updated, more accurate, utility
+estimate of state utility. This update process is repeated until convergence is met: utility
+changes at most very minimally. Once state utilities are estimated, a policy can be extracted
+by selecting the action with the maximum expected utility (MEU) for each state. Because of this,
+VI can only operate on problems with discrete domains that have known transition probabilities,
+which is rather limiting.
+
+\textbf{Maze}
+
+Here we will analyze VI's performance on the Maze problem. For convergence, as specified by the
+description of the algorithm, we will look for the change in utility to be small. Specifically,
+here, we will look for the absolute difference in mean utility (meanV) to be less than 0.1. The
+choice of 0.1 is somewhat arbitrary. Typically, a good choice in convergence threshold is one
+that allows the algorithm to quickly arrive at a good solution consistently. In the case of the
+maze problem, we will see that 0.1 is an appropriate value, but other problems or algorithms
+may need different thresholds.
+
+Various metrics of VI's performance on this problem can be found in figures \ref{fig:small-maze-vi}
+and \ref{fig:large-maze-vi} for the small and large variants of this problem, respectively. There
+are two types of metrics presented: metrics collected during planning (meanV and PlanningTime),
+and metrics collected during the execution of the agent on the problem (numActions and
+CumulativeReward). The planning metrics help us determine convergence, and the execution metrics help
+us determine the quality of the agent's performance. We need both types of metrics to get a full
+picture. For example, an agent can converge quickly to a bad solution. \textbf{Note:} For low
+values of iteration (before convergence is reached) execution metrics have extreme values. This is
+because at those points, the agent has not yet learned how to traverse the maze and typically
+runs around in loops for a very long time. For this reason, we trim the low iteration section of the
+the plots illustrating the execution performance.
+
+For this analysis, the metrics are aggregates (mean and standard deviation) of the results from
+10 independent runs. However, the planning metrics do not change very much because the planning
+phase of VI is deterministic. The execution phase is not deterministic because of the description
+of the Maze problem: actions succeed with only 80\% probability.
+
+A more detailed description of the metrics is as follows: 
+
+\begin{enumerate}
+    \item \textbf{numActions} (execution): the total number of actions taken by the agent at the
+    given iteration while traversing the maze.
+    \item \textbf{cumulativeReward} (execution): the sum total of reward as the agent traverses the
+    maze from start to goal -- some paths might be longer (more actions) but incur fewer negative 
+    rewards as the agent avoids hazards.
+    \item \textbf{meanV} (planning): the mean utility of all states by iteration. When the derivative
+    of this goes to 0, the algorithm has converged.
+    \item \textbf{PlanningTime (ms)} (planning): the total time (in milliseconds) spent updating the
+    utility matrix
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.45]{maze6_gamma.png}
+        \caption{Small Maze VI Performance by Gamma}
+        \label{fig:small-maze-vi}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.45]{maze9_gamma.png}
+        \caption{Large Maze VI Performance by Gamma}
+        \label{fig:large-maze-vi}
+    \end{minipage}
+\end{figure}
+
+With the metrics being explained, we will now analyze our results.
+
+When $\gamma$ is low (below 0.98 for the small problem, below 0.99 for the large problem), the agents
+tend to get caught in loops and their execution metrics lose a lot of meaning (extremely high and volatile).
+$\gamma$ as a parameter dictates the value of future rewards: the higher the value of $\gamma$, the more
+valuable the rewards of future states. When $\gamma$ is 0, only immediate rewards are considered. In the
+Maze problem, the start and end states are selected to maximize the shorted path distance in the environments.
+Because of this, it should follow why low values of $\gamma$ result in agents getting caught in loops: the only
+positive reward (or release from the low negative rewards from each action) is far-away. This is the
+same reason why the lowest value of $\gamma$ needed to avoid getting caught in loops is higher for the
+larger problem: the goal state is even farther away.
+
+The effect of $\gamma$ is also evident by looking at the meanV plots: small reductions of $\gamma$ result
+in large shifts in the meanV curves. Larger $\gamma$ will be more negative as future states (and their
+negative rewards) have larger contribution at each iteration.
+
+In general, we see larger values of $\gamma$ converge more quickly in the numebr of iterations for both problems --
+the total planning time is insignificantly different. However, when we consider the numActions, we see the algorithm
+converges to roughly the same number of actions and total reward, meaning the quality of their solutions are similar.
+There is some slight variation in the exact number of actions, but this is most likely due to the stochastic nature
+of the problem.
+
+In conclusion, a good agent is one that converges quickly to a good solution with quick convergence being determined by
+a short planning time and a good solution having high reward. Since we see different values of $\gamma$ each converging
+to roughly the same number of actions and reward but higher values of $\gamma$ converging in slightly fewer iterations,
+the best parameters for this problem are higher $\gamma$, specifically: $\gamma >= 0.99$ (small) and $\gamma >= 0.999$ (large).
+
+\textbf{BlockDude}
+
+\begin{figure}
+    \centering
+    \label{fig:DT-ccp}
+    \includegraphics[scale=0.43]{BlockDude_vi_gamma.png}
+    \caption{BlockDude VI Performance by Gamma}
+\end{figure}
+
+
+%----------------------------------------------------------------------------------------
+%	SECTION 3: Policy Iteration
+%----------------------------------------------------------------------------------------
+
+\section{Policy Iteration} \label{PI}
+
+\textbf{Maze}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.45]{maze6_gamma_pi.png}
+        \caption{Small Maze PI Performance by Gamma}
+        \label{fig:small-maze-pi}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.45]{maze9_gamma_pi.png}
+        \caption{Large Maze PI Performance by Gamma}
+        \label{fig:large-maze-pi}
+    \end{minipage}
+\end{figure}
+
+\textbf{BlockDude}
+
+\begin{figure}
+    \centering
+    \label{fig:DT-ccp}
+    \includegraphics[scale=0.43]{BlockDude_pi_gamma.png}
+    \caption{BlockDude PI Performance by Gamma}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 4: Q-Learning
+%----------------------------------------------------------------------------------------
+
+\section{Q-Learning} \label{QL}
+
+\textbf{Maze}
+
+\textbf{BlockDude}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{Maze_Q_Learning_gamma.png}
+        \caption{Maze Q-Learning Performance by Gamma}
+        \label{fig:small-maze-pi}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{BlockDude_Q_Learning_Gamma_2.png}
+        \caption{BlockDude Q-Learning Performance by Gamma}
+        \label{fig:large-maze-pi}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{Maze_Q_Learning_epsilon.png}
+        \caption{Maze Q-Learning Performance by Epsilon}
+        \label{fig:small-maze-pi}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{BlockDude_Q_Learning_epsilon_2.png}
+        \caption{BlockDude Q-Learning Performance by Epsilon}
+        \label{fig:large-maze-pi}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{Maze_Q_Learning_alpha.png}
+        \caption{Maze Q-Learning Performance by Alpha}
+        \label{fig:small-maze-pi}
+    \end{minipage}\hfill
+    \begin{minipage}{0.5\textwidth}
+        \centering
+        \includegraphics[scale=0.4]{BlockDude_Q_Learning_alpha.png}
+        \caption{BlockDude Q-Learning Performance by Alpha}
+        \label{fig:large-maze-pi}
+    \end{minipage}
+\end{figure}
+
+\begin{table}
+    \centering
+    \caption{Summary of Q-Learning Performance Metrics at Convergence with Tuned Parameters}
+    \label{table:large-bd-ql}
+    \begin{tabular}{llrrrrrr}
+        \toprule
+           &     & \multicolumn{2}{l}{numSteps} & \multicolumn{2}{l}{Cumulative Wallclock (s)} & \multicolumn{2}{l}{Iterations} \\
+           &     &   Median &  IQR &           Median &    IQR &    Median &   IQR \\
+        Problem & Size &          &      &                  &        &           &       \\
+        \midrule
+        BlockDude & Small &    19.00 & 0.00 &         0.37 &  0.04  &     58.00 &  2.00 \\
+        BlockDude & Large &    94.00 & 0.00 &         57.34 &  0.83 &  4,571.00 &  3.00 \\
+        \bottomrule
+        \end{tabular}               
+    \end{table} 
+    
+
+%----------------------------------------------------------------------------------------
+%	Bibliography
+%----------------------------------------------------------------------------------------
+
+    \bibliography{refs}{}
+\bibliographystyle{plain}
+
+\end{document}
