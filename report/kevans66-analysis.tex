@@ -225,6 +225,12 @@ by selecting the action with the maximum expected utility (MEU) for each state. 
 VI can only operate on problems with discrete domains that have known transition probabilities,
 which is rather limiting.
 
+In this implementation of VI, there is one main parameter for changing behavior, $\gamma$, which
+affects the weight of distant states have on the utility of each state: the higher the value of
+$\gamma$, the more valuable the rewards of future states. When $\gamma$ is 0, only immediate
+rewards are considered. For this analysis, we will also explore how $\gamma$ affects the agent
+performance.
+
 \textbf{Maze}
 
 Here we will analyze VI's performance on the Maze problem. For convergence, as specified by the
@@ -285,9 +291,7 @@ A more detailed description of the metrics is as follows:
 With the metrics being explained, we will now analyze our results.
 
 When $\gamma$ is low (below 0.98 for the small problem, below 0.99 for the large problem), the agents
-tend to get caught in loops and their execution metrics lose a lot of meaning (extremely high and volatile).
-$\gamma$ as a parameter dictates the value of future rewards: the higher the value of $\gamma$, the more
-valuable the rewards of future states. When $\gamma$ is 0, only immediate rewards are considered. In the
+tend to get caught in loops and their execution metrics lose a lot of meaning (extremely high and volatile). In the
 Maze problem, the start and end states are selected to maximize the shorted path distance in the environments.
 Because of this, it should follow why low values of $\gamma$ result in agents getting caught in loops: the only
 positive reward (or release from the low negative rewards from each action) is far-away. This is the
@@ -298,7 +302,7 @@ The effect of $\gamma$ is also evident by looking at the meanV plots: small redu
 in large shifts in the meanV curves. Larger $\gamma$ will be more negative as future states (and their
 negative rewards) have larger contribution at each iteration.
 
-In general, we see larger values of $\gamma$ converge more quickly in the numebr of iterations for both problems --
+In general, we see larger values of $\gamma$ converge more quickly in the number of iterations for both problems --
 the total planning time is insignificantly different. However, when we consider the numActions, we see the algorithm
 converges to roughly the same number of actions and total reward, meaning the quality of their solutions are similar.
 There is some slight variation in the exact number of actions, but this is most likely due to the stochastic nature
@@ -311,13 +315,68 @@ the best parameters for this problem are higher $\gamma$, specifically: $\gamma 
 
 \textbf{BlockDude}
 
+The analysis of the BlockDude problem will be carried out in much the same way at the analysis of the Maze problem.
+The software used to conduct the BlockDude problem analysis is slightly different from that used for the Maze. For
+that reason, there are a few differences in the exact metrics used:
+
+\begin{enumerate}
+    \item maxV is used instead of meanV to identify and report convergence behavior, but this should be of little
+    consequence as mean and max should both identify roughly the same iteration as the convergence point. However,
+    they are at different scales which will impact the value of the convergence threshold.
+    \item Reward and number of actions are only recorded for the final, converged iteration. We can still use
+    these metrics to assess the quality of the agents, but we won't be able to plot them as a function of iteration.
+\end{enumerate}
+
 \begin{figure}
     \centering
-    \label{fig:DT-ccp}
     \includegraphics[scale=0.43]{BlockDude_vi_gamma.png}
     \caption{BlockDude VI Performance by Gamma}
+    \label{fig:bd-vi}
 \end{figure}
 
+The results of running VI on the BlockDude problem can be found in figure \ref{fig:bd-vi}. For convergence criterion,
+here we use $\Delta maxV <= 0.001$ determined through experimentation using the reasoning explained above for Maze. Here, we
+see generally that higher $\gamma$ results in longer wallclock time. As explained previously, higher values of $\gamma$
+result in more weight for more distant states. It is possible that the implementation of VI used in this analysis terminates
+early if the contribution of far away states is below some threshold. This is a possible explanation for the effect of
+$\gamma$ on wallclock.
+
+\begin{table}
+    \centering
+    \caption{BlockDude VI Performance at Convergence}
+    \label{table:bd-vi-execution}
+    \begin{tabular}{lllrrrr}
+        \toprule
+        Size & Gamma &  Total Iterations &  Cumulative Wallclock (s) &  totalRewardAtConvergence &  numStepsAtConvergence \\
+        \midrule
+        Small &         0.7 &    20 &               658 &                       -19 &                     19 \\
+        Small &         0.8 &    31 &               275 &                       -19 &                     19 \\
+        Small &         0.9 &    66 &               586 &                       -19 &                     19 \\
+        Small &        0.99 &   688 &              5,829 &                       -19 &                     19 \\
+        \midrule
+        Large &         0.7 &    20 &              6,336 &                    -1,249 &                   1,249 \\
+        Large &         0.8 &    31 &              8,065 &                    -1,249 &                   1,249 \\
+        Large &         0.9 &    66 &             15,204 &                       -94 &                     94 \\
+        Large &        0.99 &   688 &            154,031 &                       -94 &                     94 \\
+        \bottomrule
+        \end{tabular}
+    \end{table}
+
+The execution metrics at the convergence point for BlockDude can be found in table \ref{table:bd-vi-execution}. We
+see for the small BlockDude problem, although the agent when $\gamma = 0.7$ converges in the fewest number of iterations,
+the agent when $\gamma = 0.8$ converges in the lowest wallclock time. All values of $\gamma$ converge to the optimal
+number of steps. Therefore, the optimal value of $\gamma$ of the values explored is \textbf{0.8}.
+
+The Large BlockDude problem obviously takes longer to converge than the small BlockDude problem even for small values of $\gamma$
+due to the much larger number of states. Convergence time grows very quickly with $\gamma$. We see convergence to a
+sub-optimal solution when $\gamma < 0.8$ and convergence to the optimal solution when $\gamma >= 0.8$. It is possible that the
+agent is getting caught in some loop or otherwise does some sub-optimal sequence of actions resulting from only considering more
+immediate rewards. Larger values of $\gamma$, as discussed previously, allow the agent to consider rewards from distant states.
+This is particularly important for the large BlockDude problem which has the largest number of states in this analysis. There
+are also no intermediate  (non-negative) rewards along the "path" to the solution, so the agent really needs a high $\gamma$ to
+find the goal.
+
+Because of this, for the large BlockDude problem, the optimal value of $\gamma$ of the values explored is \textbf{0.9}.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 3: Policy Iteration
@@ -351,6 +410,27 @@ the best parameters for this problem are higher $\gamma$, specifically: $\gamma 
     \includegraphics[scale=0.43]{BlockDude_pi_gamma.png}
     \caption{BlockDude PI Performance by Gamma}
 \end{figure}
+
+
+\begin{table}
+    \centering
+    \caption{BlockDude PI Performance at Convergence}
+    \begin{tabular}{llrrrr}
+        \toprule
+        Size & Gamma &  Total Iterations &  Cumulative Wallclock (s) &  totalRewardAtConvergence &  numStepsAtConvergence \\
+        \midrule
+        Small &         0.7 &    14 &              1,368 &                       -19 &                     19 \\
+        Small &         0.8 &    21 &              1,845 &                       -19 &                     19 \\
+        Small &         0.9 &    20 &              3,052 &                       -19 &                     19 \\
+        Small &        0.99 &    15 &              9,068 &                       -19 &                     19 \\
+        \midrule
+        Large &         0.7 &    14 &             26,425 &                    -1,249 &                   1,249 \\
+        Large &         0.8 &    20 &             51,741 &                    -1,249 &                   1,249 \\
+        Large &         0.9 &    29 &            148,630 &                       -94 &                     94 \\
+        Large &        0.99 &    41 &            838,579 &                       -94 &                     94 \\
+        \bottomrule
+        \end{tabular}
+    \end{table}
 
 %----------------------------------------------------------------------------------------
 %	SECTION 4: Q-Learning
