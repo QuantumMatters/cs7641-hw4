@@ -438,17 +438,29 @@ $\gamma$. Therefore, the optimal values of $\gamma$ for the small and large maze
 
 \textbf{BlockDude}
 
+The PI performance metrics for BlockDude can be found in figure \ref{fig:bd-pi}, and the metrics at convergence can be
+found in table \ref{table:bd-pi-execution}. As with the Maze problem, we again see PI converge in fewer iterations than VI (attention:
+$\Delta maxV$ plot). The plateaus observed for $\gamma = 0.99$ are likely the result of the inner VI runs hitting the
+iteration limit. However, even with the inner VI hitting the limit, we still see the algorithm able to converge to the
+optimal solution. As before, we see convergence to a sub-optimal solution for the large problem when $\gamma < 0.9$. We
+also see a significant jump in wallclock time for $\gamma > 0.9$. For these reasons, the optimal values for the small and
+large BlockDude problems is \textbf{0.7 and 0.9}, respectively.
+
+In comparison to VI, PI for this problem was able to converge to an equally performant solution but in about 10 times longer
+time. So, VI is clearly superior. However, again, this could possibly be do implementation details in the BURLAP package, as
+described earlier. It is possible that a different implementation of PI would prove to be superior to VI.
+
 \begin{figure}
     \centering
-    \label{fig:DT-ccp}
     \includegraphics[scale=0.43]{BlockDude_pi_gamma.png}
     \caption{BlockDude PI Performance by Gamma}
+    \label{fig:bd-pi}
 \end{figure}
-
 
 \begin{table}
     \centering
     \caption{BlockDude PI Performance at Convergence}
+    \label{table:bd-pi-execution}
     \begin{tabular}{llrrrr}
         \toprule
         Size & Gamma &  Total Iterations &  Cumulative Wallclock (s) &  totalRewardAtConvergence &  numStepsAtConvergence \\
@@ -472,9 +484,35 @@ $\gamma$. Therefore, the optimal values of $\gamma$ for the small and large maze
 
 \section{Q-Learning} \label{QL}
 
-\textbf{Maze}
+The final algorithm for solving MDPs that we will analyze here is Q-Learning. Out of the algorithms explored in this analysis,
+Q-Learning is the only model-free learning algorithm. This means that -- unlike VI \& PI -- Q-Learning is not limited to
+discrete environments with known transition functions which makes it applicable to many more problems.
 
-\textbf{BlockDude}
+In this analysis, we will consider the epsilon greedy Q-Learning algorithm. This algorithm derives a policy from an estimate
+of the action-state utility function, commonly referred to as Q in the literature. The policy derived is the argmax of Q. The Q
+function is estimated through an iterative process: in a given state ($s$), execute some action ($a$), receive some reward ($r$),
+observe the resulting state ($s'$), and update the $\hat{Q}(s,a)$ value (the estimated Q value) for the given state-action pair
+according to:
+
+\begin{equation*}
+    \hat{Q}_{n}(s,a) \leftarrow (1 - \alpha_{n})\hat{Q}_{n-1}(s,a) + \alpha_{n}[r + \gamma\max_{a'} \hat{Q}_{n-1}(s', a')
+\end{equation*}
+
+Where $\gamma$ is the discount factor described earlier, and $\alpha$ is a new parameter -- the learning rate -- that is slowly
+decreased by iteration, $n$, discounting the effect of new information. $\alpha$ is helpful in obtaining convergence
+\cite{ml_textbook}.
+
+The epsilon in "epsilon-greedy Q-Learning" is the "explore-exploit" parameter. It introduces some randomness when picking the
+action $a$ in the algorithm described above. With probability $1 - \epsilon$, the agent picks the action with maximal Q value.
+When epsilon is 0, the agent very explores and only exploits its understanding of the problem. In contrast, when epsilon is 1,
+the agent always selects the next action randomly.
+
+We will explore the effects of all three paramters on the performance of Q-Learning on these two problems in the subsequent
+sections.
+
+\textbf{Gamma}
+
+
 
 \begin{figure}
     \centering
@@ -492,6 +530,8 @@ $\gamma$. Therefore, the optimal values of $\gamma$ for the small and large maze
     \end{minipage}
 \end{figure}
 
+\textbf{Epsilon}
+
 \begin{figure}
     \centering
     \begin{minipage}{0.5\textwidth}
@@ -507,6 +547,8 @@ $\gamma$. Therefore, the optimal values of $\gamma$ for the small and large maze
         \label{fig:bd-ql-epsilon}
     \end{minipage}
 \end{figure}
+
+\textbf{Alpha}
 
 \begin{figure}
     \centering
