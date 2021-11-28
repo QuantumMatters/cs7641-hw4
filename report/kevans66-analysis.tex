@@ -384,7 +384,41 @@ Because of this, for the large BlockDude problem, the optimal value of $\gamma$ 
 
 \section{Policy Iteration} \label{PI}
 
+Policy Iteration (PI) is another algorithm for solving MDPs. It shares some characteristics with VI.
+PI first starts with an arbitrary policy for each state then carries out iteratively alternating between two phases:
+policy evaluation and policy improvement. The first phase, policy evaluation, attempts to estimate the utility of each
+state given the policy. In the implementation of PI explored in this analysis, the utility is estimated using VI.
+Afterwards, a new policy is obtained by calculating the MEU policy given the new state utilities considering only the next step.
+This process is repeated until the policy improvement stage no longer changes the policy, which we will identify here
+by noting a small change in state utilities for consistency with VI. This has the benefit of allowing small changes in the policy
+that may not have a significant impact on the solution.
+
+In comparison to VI, PI tends to converge in fewer iterations. Further, in a variant of PI called "Modified Policy
+Iteration" (where VI is constrained to only consider state-action pairs in the given policy), PI tends to be more efficient
+than VI \cite{textbook}. Both VI and PI are subject to the same limitation that the algorithms can only be applied to
+discrete problems with known transition probabilities. Finally, as with VI, the key parameter for controlling behavior
+is $\gamma$, and so we will consider the performance as a function of $\gamma$ in this analysis.
+
 \textbf{Maze}
+
+The performance of PI on the large and small Maze problems can be seen in figures \ref{fig:small-maze-pi} and \ref{fig:large-maze-pi},
+respectively. While we did not meet convergence for over 100 iterations with VI, with PI, convergence is met within about 6 and 10 iterations
+for the small and large maze problems, respectively. These correspond to the points in the meanV plots where the value levels off. However,
+each iteration of PI is much more expensive than VI's. This is possibly due to how -- in this implementation of PI -- each iteration of
+PI requires running VI until convergence which can be many iterations. Typically, if the PI implementation uses the modified PI algorithm
+described above, one would expect each iteration of PI's inner VI to be faster than each iteration of proper VI. In this case, BURLAP, we
+see that the PI implemented references a policy-constrained VI. However, we still see consistently PI taking much longer than VI in terms of
+time. It is possible that we are just unlucky here, and the cost of the multiple inner VI runs per iteration of PI outweighs the cost-savings
+associated with the policy-constraint. However, it is worth noting that other students are also reporting on the class forums on Ed that they
+observe PI to take longer than VI, and what we may be observing here is an inefficient implementation of PI.
+
+We see a significant jump in planning time for both maze problems when $\gamma$ increases past 0.99. This is likely due to similar reasons
+described in section \ref{VI} causing the inner VI loops to continue to iterate. Furthermore, when values of $\gamma$ below about 0.98 and 0.99
+for the small and large variants, respectively, are explored, we again observe the same difficulty converging observed in section \ref{VI}.
+Again for similar reasons, records from those runs are not shown (the agent would get caught in loops endlessly).
+
+Finally, when we look at the number of actions and cumulative reward plots, we do not see very significant differences between values of
+$\gamma$. Therefore, the optimal values of $\gamma$ for the small and large maze problems are \textbf{0.98 and 0.99}, respectively.
 
 \begin{figure}
     \centering
@@ -448,13 +482,13 @@ Because of this, for the large BlockDude problem, the optimal value of $\gamma$ 
         \centering
         \includegraphics[scale=0.4]{Maze_Q_Learning_gamma.png}
         \caption{Maze Q-Learning Performance by Gamma}
-        \label{fig:small-maze-pi}
+        \label{fig:maze-ql-gamma}
     \end{minipage}\hfill
     \begin{minipage}{0.5\textwidth}
         \centering
         \includegraphics[scale=0.4]{BlockDude_Q_Learning_Gamma_2.png}
         \caption{BlockDude Q-Learning Performance by Gamma}
-        \label{fig:large-maze-pi}
+        \label{fig:bd-ql-gamma}
     \end{minipage}
 \end{figure}
 
@@ -464,13 +498,13 @@ Because of this, for the large BlockDude problem, the optimal value of $\gamma$ 
         \centering
         \includegraphics[scale=0.4]{Maze_Q_Learning_epsilon.png}
         \caption{Maze Q-Learning Performance by Epsilon}
-        \label{fig:small-maze-pi}
+        \label{fig:maze-ql-epsilon}
     \end{minipage}\hfill
     \begin{minipage}{0.5\textwidth}
         \centering
         \includegraphics[scale=0.4]{BlockDude_Q_Learning_epsilon_2.png}
         \caption{BlockDude Q-Learning Performance by Epsilon}
-        \label{fig:large-maze-pi}
+        \label{fig:bd-ql-epsilon}
     \end{minipage}
 \end{figure}
 
@@ -480,13 +514,13 @@ Because of this, for the large BlockDude problem, the optimal value of $\gamma$ 
         \centering
         \includegraphics[scale=0.4]{Maze_Q_Learning_alpha.png}
         \caption{Maze Q-Learning Performance by Alpha}
-        \label{fig:small-maze-pi}
+        \label{fig:maze-ql-alpha}
     \end{minipage}\hfill
     \begin{minipage}{0.5\textwidth}
         \centering
         \includegraphics[scale=0.4]{BlockDude_Q_Learning_alpha.png}
         \caption{BlockDude Q-Learning Performance by Alpha}
-        \label{fig:large-maze-pi}
+        \label{fig:bd-ql-alpha}
     \end{minipage}
 \end{figure}
 
