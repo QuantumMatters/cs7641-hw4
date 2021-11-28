@@ -235,7 +235,9 @@ performance.
 
 Here we will analyze VI's performance on the Maze problem. For convergence, as specified by the
 description of the algorithm, we will look for the change in utility to be small. Specifically,
-here, we will look for the absolute difference in mean utility (meanV) to be less than 0.1. The
+here, we will look for the absolute difference in mean utility (meanV) to be less than 0.1
+\footnote{\textbf{Note}: a table of all convergence criteria is available at the end of the report in table
+\ref{table:convergence}}. The
 choice of 0.1 is somewhat arbitrary. Typically, a good choice in convergence threshold is one
 that allows the algorithm to quickly arrive at a good solution consistently. In the case of the
 maze problem, we will see that 0.1 is an appropriate value, but other problems or algorithms
@@ -347,7 +349,7 @@ $\gamma$ on wallclock.
     \label{table:bd-vi-execution}
     \begin{tabular}{lllrrrr}
         \toprule
-        Size & Gamma &  Total Iterations &  Cumulative Wallclock (s) &  totalRewardAtConvergence &  numStepsAtConvergence \\
+        Size & Gamma &  Total Iterations &  Cumulative Wallclock (ms) &  totalRewardAtConvergence &  numStepsAtConvergence \\
         \midrule
         Small &         0.7 &    20 &               658 &                       -19 &                     19 \\
         Small &         0.8 &    31 &               275 &                       -19 &                     19 \\
@@ -495,7 +497,7 @@ observe the resulting state ($s'$), and update the $\hat{Q}(s,a)$ value (the est
 according to:
 
 \begin{equation*}
-    \hat{Q}_{n}(s,a) \leftarrow (1 - \alpha_{n})\hat{Q}_{n-1}(s,a) + \alpha_{n}[r + \gamma\max_{a'} \hat{Q}_{n-1}(s', a')
+    \hat{Q}_{n}(s,a) \leftarrow (1 - \alpha_{n})\hat{Q}_{n-1}(s,a) + \alpha_{n}[r + \gamma\max_{a'} \hat{Q}_{n-1}(s', a')]
 \end{equation*}
 
 Where $\gamma$ is the discount factor described earlier, and $\alpha$ is a new parameter -- the learning rate -- that is slowly
@@ -504,15 +506,42 @@ decreased by iteration, $n$, discounting the effect of new information. $\alpha$
 
 The epsilon in "epsilon-greedy Q-Learning" is the "explore-exploit" parameter. It introduces some randomness when picking the
 action $a$ in the algorithm described above. With probability $1 - \epsilon$, the agent picks the action with maximal Q value.
-When epsilon is 0, the agent very explores and only exploits its understanding of the problem. In contrast, when epsilon is 1,
-the agent always selects the next action randomly.
+When epsilon is 0, the agent only exploits its understanding of the problem by selecting the action it thinks is best.
+In contrast, when epsilon is near 1, the agent has a high probability to select the next action randomly and thus explores.
+Typically, a balance of exploration and exploitation are needed to learn how to solve a problem well.
 
-We will explore the effects of all three paramters on the performance of Q-Learning on these two problems in the subsequent
+We will explore the effects of all three parameters on the performance of Q-Learning on these two problems in the subsequent
 sections.
 
 \textbf{Gamma}
 
+The impact of $\gamma$ on the performance of Q-Learning for the Maze and BlockDude problems can be found in figures
+\ref{fig:maze-ql-gamma} and \ref{fig:bd-ql-gamma}, respectively. When $\gamma$ is low, for the Maze problem we see divergent
+behavior: the number of steps starts small but begins grows as the number of episodes increases. As a reminder, numSteps is
+not cumulative but instead shows the number of steps needed for the agent to solve the Maze problem at the given iteration.
+We expect the agent to become "more intelligent" as episodes increases and thus we expect the number of steps to decrease.
+It is possible that this behavior
+is due to the learning rate $\alpha$, which decreases the influence of new information over time. Since $\gamma$ is low,
+the agent does not "see" the far-away reward of the goal state. By stumbling around, the agent might eventually get into a
+position where the influence of the goal state becomes significant. However, by that time, it is possible that the
+value of $\alpha$ is too low for the agent to take that influence into consideration when updating its $\hat{Q}$ function.
+The effect is larger in the large Maze problem than the small Maze problem where $\gamma < 0.9$ experience divergence.
+This is consistent with the preceding argument because in the large Maze problem, the goal state is even further away.
 
+Further, in the Maze problem, the effect of the far-off goal is exacerbated by the interspersed hazards, some of which block
+paths to the goal. Upon inspection of some of the episode play-backs where we can watch a visual representation of the agent
+solving the Maze step-by-step, it appears that early on, the agent does not quite learn the effect of the hazards and freely
+steps onto them. However, after a few episodes, the agent appears to learn the effect of the hazards and learns that it should
+avoid them. Since some of the hazards block the path to the goal, the agent needs to learn that some hazards are unavoidable.
+When $\gamma$ is low, it appears the agent is not quite capable of learning that.
+
+Moving on to the BlockDude problem, interestingly, for the small problem, we see little effect of $\gamma$ on the agent's
+performance. We do see that higher values of $\gamma$ converge to the optimal solution more quickly, however, the effect is
+not very  pronounced. This is likely due to the smaller state of the small BlockDude problem and we might see more pronounced
+changes in performance at even lower values of $\gamma$. For the large problem, on the other hand, we do see a pronounced
+impact of $\gamma$ where the agent is much more efficient at solving the problem when $\gamma$ is high. Still, the number
+of iterations and the amount of time needed for the Q-Learning agent to solve the large BlockDude problem is worse than either VI
+or PI even at the highest $\gamma$.
 
 \begin{figure}
     \centering
@@ -532,6 +561,24 @@ sections.
 
 \textbf{Epsilon}
 
+$\epsilon$ is the "explore exploit" parameter. As discussed previously, the higher the value of $\epsilon$, the more often an agent
+will randomly select its next move. This means that when $\epsilon$ is high, we should expect the agents to explore more of the environment and
+tend to avoid getting stuck in local optima. However, when $\epsilon$ is too high, this can also have a negative effect as the agents may tend
+to wander around avoiding the correct path. This is especially important for our problems because there are slight negative rewards for each
+action taken, so the agent is best to quickly reach the goal.
+
+For the Maze problem, we see some evidence of the deleterious effect of high $\epsilon$ in figure \ref{fig:maze-ql-epsilon}:
+average reward is lower and number of steps is higher for higher values of $\epsilon$. The results shown in figure \ref{fig:maze-ql-epsilon}
+are from experiments with $\gamma$ fixed at 0.9. It is possible that the divergent behavior observed at low values of $\gamma$ discussed in
+the previous section could be offset by higher $\epsilon$. In the previous section, we observed what appeared to be the agent learning enough to
+avoid the path-blocking hazards and getting stuck in a loop, a local optima. Higher $\epsilon$ values might cause the agent to randomly move
+over the obstacles and move toward the goal.
+
+For the BlockDude problem, we surprisingly see very little effect of $\epsilon$ on the agent's performance. We would expect to see
+a correlation between higher values of $\epsilon$ and lower reward, as observed for the Maze problem, due to the presence of a small
+negative reward given to the agent at each action.
+
+
 \begin{figure}
     \centering
     \begin{minipage}{0.5\textwidth}
@@ -549,6 +596,28 @@ sections.
 \end{figure}
 
 \textbf{Alpha}
+
+Finally, we come to $\alpha$, the learning rate parameter. As discussed previously, when $\alpha$ is high, new information
+is given more weight when updating the $\hat{Q}$ function. $\alpha$ is slowly lowered over time which has the effect that
+the agent will start off exploring and learning then slowly start to rely more and more on what is has learned in the past.
+This is helpful for convergence and means in later iterations, the agent will more directly attempt to solve the MDP rather
+than learn and explore it. In terms of expected behavior, when $\alpha$ is too low, we should expect to see the agent
+not exploring its environment and getting stuck in local optima more often. On the other hand, when $\alpha$ is too high, we
+should expect to see more meandering of the agent and thus lower rewards and higher step counts.
+
+The effect of $\alpha$ on the Q-Learning agent's performance on the Maze and BlockDude problems can be seen in figures
+\ref{fig:maze-ql-alpha} and \ref{fig:bd-ql-alpha}, respectively. For the small Maze problem, we still little effect of alpha.
+This could be due to the relatively small state space in this problem: the agent is able to learn quickly what it needs to do.
+For the large Maze problem, we start to see some slight effect of $\alpha$. At higher values of $\alpha$, we see lower rewards
+as expected due to the meandering nature high $\alpha$ brings. Still, the effect is slight. It is possible that larger ranges of
+$\alpha$ would yield more differentiated behavior.
+
+For the BlockDude problem, we see a strong effect of $\alpha$. This problem really benefits from high $\alpha$: higher $\alpha$
+results in much faster convergence to better solutions to the problem (fewer steps). The effect is similar for both sizes.
+This could again be due to the nature of the problem where each step incurs some small negative penalty and the only non-negative
+reward comes from a far-away goal state. The path to the solution is complex and requires the agent to interact with its environment
+to create a way to the solution. In this case, the solution to the BlockDude problem is more complex and it is likely for that
+reason why we see such a strong effect of $\alpha$.
 
 \begin{figure}
     \centering
@@ -581,7 +650,85 @@ sections.
         \bottomrule
         \end{tabular}               
     \end{table} 
+
+%----------------------------------------------------------------------------------------
+%	Conclusion
+%----------------------------------------------------------------------------------------
+
+\section{Conclusion}
+
+A summary of the performance of each algorithm on each problem and size can be found in table \ref{table:comparison}.
+A good algorithm here is one that can quickly produce high quality (low number of steps) solutions to the problems.
+Given these criteria, what we see is that VI clearly outperforms all the other algorithms for these problems. Although 
+we see VI and PI both converge to high quality solutions, unfortunately we see PI take about an order of magnitude longer
+in planning time. In theory, PI should generally perform better than VI. However, as explained above in section
+\ref{PI}, it is possible that our implementation of PI (BURLAP) is inefficient as other students are reporting similar
+performance issues for different problems.
+
+Perhaps disappointingly, Q-Learning performed by-far the worst. For the Maze problem, Q-Learning was not able to
+converge to a good solution and mostly just ran around the maze aimlessly, never truly learning how to traverse the Maze.
+Q-Learning still performed poorly for the BlockDude problem, although it is possible to converge to the optimal solution
+given a large amount of iterations. It is possible that a primary driver of Q-Learning's poor performance on these problems
+is the lack of intermediate rewards. The interspersed path-blocking hazards in the Maze problem possibly caused the agent to
+never converge.
+
+In the end, we find the simplest algorithm, VI, to perform the best across the board. It is possible that this is an artifact
+of PI's implementation that PI would have performed best with a more efficient implementation. By propagating the rewards from
+the goal state to the start state, VI and PI are able to overcome the difficulties imposed by the lack of intermediate rewards 
+and path-blocking hazards. To improve the performance of Q-Learning, intermediate rewards should be placed along the solution
+path in the problems and the hazards in the maze problem should be adjusted to avoid blocking paths.
+
+Finally, it is worth mentioning that although Q-Learning performed the worst, it does have a significant advantage in that
+it can be applied to many more problems. VI and PI are limited in that they can only be applied to problems with discrete
+environments and with known transition probabilities. Q-Learning, on the other hand, does not depend on these characteristics
+and is therefore much more general of an algorithm: Q-Learning might take a while to solve a problem, but at least it can
+solve it.
+
+\begin{table}
+    \centering
+    \caption{Comparison of Optimal Runs By Algorithm, Problem, and Size}
+    \label{table:comparison}
+    \begin{tabular}{llllrrr}
+        \toprule
+        Algorithm & Problem &  Size &  Parameters & Num Steps & Cumulative Wallclock (ms) & Iterations \\
+        \midrule
+        VI & Maze & Small & $\gamma = 0.99$ & 165 & 400 & 160 \\
+        VI & Maze & Large & $\gamma = 0.999$ & 170 & 2,000 & 175 \\
+        VI & BlockDude & Small & $\gamma = 0.8$ & 19 & 275 & 31 \\
+        VI & BlockDude & Large & $\gamma = 0.9$ & 94 & 15,200 & 66 \\
+        \midrule
+        PI & Maze & Small & $\gamma = 0.98$ & 165 & 3,700 & 4 \\
+        PI & Maze & Large & $\gamma = 0.99$ & 165 & 90,000 & 10 \\
+        PI & BlockDude & Small & $\gamma = 0.7$ & 19 & 1,400 & 14 \\
+        PI & BlockDude & Large & $\gamma = 0.9$ & 94 & 150,000 & 29 \\
+        \midrule
+        Q-Learning & Maze & Small & $\alpha = 0.9$, $\gamma = 0.9$, $\epsilon = 0.7$ & 105,000 &  & 26 \\
+        Q-Learning & Maze & Large & $\alpha = 0.9$, $\gamma = 0.9$, $\epsilon = 0.7$ & 1,600,000 &  & 71 \\
+        Q-Learning & BlockDude & Small & $\alpha = 0.9$, $\gamma = 0.99$, $\epsilon = 0.9$ & 19 & 370,000 & 14 \\
+        Q-Learning & BlockDude & Large & $\alpha = 0.9$, $\gamma = 0.99$, $\epsilon = 0.9$ & 94 & 57,000,000 & 29 \\
+        \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \begin{table}
+        \centering
+        \caption{Convergence Criteria}
+        \label{table:convergence}
+        \begin{tabular}{llrl}
+            \toprule
+            Algorithm & Problem &  Threshold & Metric \\
+            \midrule
+            VI & Maze & 0.1 & $\Delta$ meanV \\
+            VI & BlockDude & 0.001 & $\Delta \max{V}$ \\
+            PI & Maze & 1 & $\Delta$ meanV \\
+            PI & BlockDude & 0.001 & $\Delta \max{V}$ \\
+            Q-Learning & Maze & 0.0001 & $\Delta$ meanReward \\
+            Q-Learning & BlockDude & 0.0001 & $\Delta \max{Q}$ \\
+            \bottomrule
+            \end{tabular}
+        \end{table}
     
+
 
 %----------------------------------------------------------------------------------------
 %	Bibliography
